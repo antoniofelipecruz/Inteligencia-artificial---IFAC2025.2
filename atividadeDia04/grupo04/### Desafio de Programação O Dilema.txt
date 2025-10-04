@@ -1,0 +1,87 @@
+### Desafio de Programação: O Dilema do Eco Mortal
+
+**Introdução**
+
+Você não é um simples aventureiro; você é um **Prisioneiro Quântico**, aprisionado na **Caverna do Eco Mortal**. Este não é um lugar físico, mas uma dimensão instável que reage a cada uma de suas intenções. Sua sobrevivência não depende de um único ato, mas de uma sequência de decisões ao longo de **3 ciclos temporais (rodadas)**.
+
+O seu maior inimigo é o próprio ambiente: o **Eco Mortal**. Cada ação agressiva o amplifica, distorcendo a realidade e tornando suas chances de sobrevivência mais tênues. Ações furtivas podem acalmá-lo.
+
+As entidades que o caçam, as **Sombras Adaptativas**, são predadores inteligentes. Elas não atacam aleatoriamente; elas analisam suas fraquezas e escolhem a postura de ataque que tem a maior probabilidade de te aniquilar.
+
+**Seu Objetivo**
+
+Criar um algoritmo em Python que determine qual das três ações iniciais possíveis oferece a maior chance de sobrevivência e a maior pontuação de utilidade. Para isso, seu programa deverá rodar milhares de simulações de uma partida completa (3 ciclos) para cada ação inicial possível e calcular a média dos resultados.
+
+---
+
+### **Regras Detalhadas do Jogo**
+
+#### **1. Atributos do Jogador**
+* **HP Inicial:** 30
+* **Eco Mortal Inicial:** 0 (Este valor se acumula durante o jogo)
+* **Fragmentos de Coragem Inicial:** 0
+
+#### **2. Ações do Jogador**
+A cada ciclo, o jogador escolhe uma das três ações. Cada ação possui 3 efeitos:
+1.  **Modificador de Eco (`mod_eco`):** Altera o nível do `Eco Mortal`.
+2.  **Modificador de Sombra (`mod_sombra`):** Afeta a rolagem de ataque do inimigo. Um valor positivo ajuda o jogador.
+3.  **Limiar de Resiliência:** O valor base que o jogador precisa superar em sua rolagem de d20.
+
+| Ação | `mod_eco` | `mod_sombra` | Limiar de Resiliência |
+| :--- | :---: | :---: | :---: |
+| **Fuga Desesperada** | +2 | -2 | 12 |
+| **Sombra Silenciosa**| -1 | +2 | 8 |
+| **Confronto Direto** | +1 | -1 | 10 |
+
+#### **3. Estrutura de um Ciclo**
+
+1.  **Escolha da Ação:** O jogador escolhe uma ação.
+2.  **Atualização do Eco:** `Eco Mortal = max(0, Eco Mortal + mod_eco da ação)`
+3.  **Teste de Resiliência:** O jogador rola um d20.
+    * **Resultado >= 20:** Fuga instantânea. O jogo acaba com **Vitória**.
+    * **Resultado == 19:** O jogador encontra 1 **Fragmento de Coragem**.
+    * **Resultado <= 3:** Falha crítica. O jogador morre instantaneamente. **Derrota**.
+    * **Se o resultado for < (Limiar de Resiliência - Eco Mortal):** O jogador sofre uma falha parcial e perde **10 HP** de dano ambiental.
+4.  **Ataque da Sombra Adaptativa:** Se o jogador sobreviveu ao teste, a Sombra ataca.
+
+#### **4. Mecânicas Especiais**
+
+* **Fragmentos de Coragem:** Se o jogador possuir um fragmento, ele pode escolher usá-lo no início de um ciclo para adicionar um bônus de **+5** ao seu Teste de Resiliência daquele ciclo. O fragmento é consumido após o uso.
+* **Heurística para Simulação:** Para os ciclos 2 e 3 da simulação, a escolha de ação do jogador deve seguir esta regra:
+    * Se `HP <= 10` ou `Eco Mortal >= 4` -> Escolher **Sombra Silenciosa**.
+    * Se `HP >= 25` -> Escolher **Fuga Desesperada**.
+    * Caso contrário -> Escolher **Confronto Direto**.
+
+#### **5. Inteligência da Sombra Adaptativa**
+
+A Sombra é um oponente competitivo. Antes de atacar, ela decide entre duas posturas: **Agressiva** ou **Cautelosa**.
+
+* **Lógica de Decisão:** Para escolher, a Sombra simula 50 ataques futuros para cada postura. Ela então escolhe a postura que causa a maior média de dano (ou seja, a que mais reduz a utilidade do jogador).
+* **Rolagem de Ataque:** A rolagem de ataque da Sombra (d20) é modificada pelo `mod_sombra` da ação do jogador. `Rolagem Efetiva = Rolagem do d20 - mod_sombra`.
+
+**Tabela de Dano - Postura Agressiva:**
+* Rolagem Efetiva >= 19: Morte Instantânea ("colapso_instantaneo")
+* Rolagem Efetiva >= 13: 8 de dano
+* Rolagem Efetiva >= 7: 4 de dano
+
+**Tabela de Dano - Postura Cautelosa:**
+* Rolagem Efetiva >= 20: Morte Instantânea ("colapso_instantaneo")
+* Rolagem Efetiva >= 15: 5 de dano
+* Rolagem Efetiva >= 9: 2 de dano
+
+#### **6. Condições de Fim de Jogo e Utilidade**
+
+O jogo termina se o jogador morrer, escapar, ou ao final dos 3 ciclos. A pontuação de "utilidade" final é calculada da seguinte forma:
+
+* **Em caso de Morte:** `-1000 pontos`
+* **Em caso de Sobrevivência:** `1000 + HP Final + (100 * Fragmentos de Coragem restantes)`
+
+---
+
+**Requisitos de Saída do Programa**
+
+O seu script deve:
+1.  Executar um número elevado de simulações (ex: 30.000 para cada ação inicial).
+2.  Calcular a utilidade média para cada uma das três ações iniciais possíveis.
+3.  Imprimir um relatório final mostrando a utilidade média e a taxa de sobrevivência de cada ação.
+4.  Declarar qual ação inicial é a melhor com base na maior utilidade média.
