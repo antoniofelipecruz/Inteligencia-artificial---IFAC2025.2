@@ -1,0 +1,152 @@
+import networkx as nx
+
+class RedeSemantica:
+    """
+    Implementa uma Rede Semântica com capacidade de inferência
+    usando a biblioteca NetworkX.
+    """
+    def __init__(self):
+        # Um grafo direcionado (Digraph) é ideal para relações semânticas (A -> Relação -> B)
+        self.grafo = nx.DiGraph()
+        # Lista para armazenar as regras de inferência
+        self.regras = []
+
+    def inicializar_conceito(self, nome, atributos=None):
+        """
+        Adiciona um nó (conceito) ao grafo com atributos opcionais.
+        """
+        if atributos is None:
+            atributos = {}
+        self.grafo.add_node(nome, **atributos)
+        print(f"Conceito '{nome}' inicializado.")
+
+    def adicionar_relacao(self, origem, destino, relacao):
+        """
+        Adiciona uma aresta (relação) entre dois nós.
+        A relação é armazenada como um atributo da aresta (label).
+        """
+        if origem not in self.grafo or destino not in self.grafo:
+            print(f"Erro: Conceito '{origem}' ou '{destino}' não existe no grafo.")
+            return
+            
+        self.grafo.add_edge(origem, destino, label=relacao)
+        print(f"Relação adicionada: {origem} --[{relacao}]--> {destino}")
+
+    def listar_relacoes(self):
+        """
+        Lista todos os nós e suas relações de saída.
+        """
+        print("\n--- Relações na Rede Semântica ---")
+        for node in self.grafo.nodes():
+            print(f"Nó: {node}")
+            for vizinho in self.grafo.successors(node):
+                # Obtém o rótulo da relação (aresta)
+                relacao = self.grafo[node][vizinho].get('label', 'RELACIONADO_A')
+                print(f"  -> {relacao} -> {vizinho}")
+        print("---------------------------------")
+
+
+    def adicionar_regra(self, condicoes, conclusao):
+        """
+        Adiciona uma regra de inferência.
+        
+        condicoes: Lista de tuplas (origem, relacao, destino_ou_variavel)
+        conclusao: Tupla (origem, relacao, destino)
+        """
+        self.regras.append({"condicoes": condicoes, "conclusao": conclusao})
+        print(f"Regra adicionada. Conclusão: {conclusao}")
+
+    def verifica_relacao(self, origem, destino, relacao):
+        """
+        Verifica se uma relação específica existe diretamente no grafo.
+        Retorna True se a aresta com o rótulo (label) correto for encontrada.
+        """
+        if self.grafo.has_edge(origem, destino):
+            edge_data = self.grafo.get_edge_data(origem, destino)
+            if edge_data and edge_data.get('label') == relacao:
+                return True
+        return False
+
+    def inferir(self):
+        """
+        Aplica todas as regras para tentar adicionar novo conhecimento (novas relações).
+        Este é um mecanismo de encadeamento direto (forward chaining) simples.
+        """
+        novas_relacoes = []
+        
+        print("\n--- Iniciando Inferência de Regras ---")
+        
+        for i, regra in enumerate(self.regras):
+            condicoes_satisfeitas = True
+            
+            # Verifica se todas as condições da regra são verdadeiras
+            for cond_origem, cond_relacao, cond_destino in regra["condicoes"]:
+                if not self.verifica_relacao(cond_origem, cond_relacao, cond_destino):
+                    condicoes_satisfeitas = False
+                    break # Se uma condição falhar, a regra falha
+            
+            # Se todas as condições forem verdadeiras, aplica a conclusão
+            if condicoes_satisfeitas:
+                con_origem, con_relacao, con_destino = regra["conclusao"]
+                
+                if not self.verifica_relacao(con_origem, con_relacao, con_destino):
+                    # Adiciona a nova relação ao grafo (novo conhecimento)
+                    self.adicionar_relacao(con_origem, con_destino, con_relacao)
+                    novas_relacoes.append(regra["conclusao"])
+                else:
+                    # A conclusão já existe no grafo
+                    print(f"Regra {i+1} ativada, mas a conclusão já existe.")
+        
+        if novas_relacoes:
+            print(f"\nInferência concluída. {len(novas_relacoes)} novas relações adicionadas.")
+        else:
+            print("\nInferência concluída. Nenhuma nova relação foi adicionada.")
+
+# --- Exemplo de Uso ---
+
+rs = RedeSemantica()
+
+# 1. Inicializar Conceitos (Nós)
+rs.inicializar_conceito("cachorro")
+rs.inicializar_conceito("pessoa")
+rs.inicializar_conceito("casa")
+rs.inicializar_conceito("cidade")
+rs.inicializar_conceito("animal")
+rs.inicializar_conceito("comida")
+rs.inicializar_conceito("joao") # Instância de Pessoa
+rs.inicializar_conceito("bruce") # Instância de Cachorro
+rs.inicializar_conceito("racao") # Instância de Comida
+
+# 2. Adicionar Relações Iniciais (Arestas)
+rs.adicionar_relacao("bruce", "joao", "pertence_a") # cachorro -> pertence a -> pessoa
+rs.adicionar_relacao("joao", "casa", "mora_em") # pessoa -> mora em -> casa
+rs.adicionar_relacao("casa", "cidade", "localizada_em") # casa -> localizada em -> cidade
+rs.adicionar_relacao("bruce", "animal", "é_um") # cachorro -> é um -> animal
+rs.adicionar_relacao("animal", "comida", "precisa_de") # animal -> precisa de -> comida
+
+# 3. Adicionar Regra de Inferência
+# Regra: Se (X pertence_a Y) E (X é_um Z) E (Z precisa_de W) 
+#        ENTÃO (Y responsavel_por_alimentar X)
+# Simplificando para a estrutura com instâncias:
+# Condições: (bruce pertence_a joao) E (bruce é_um animal) E (animal precisa_de comida)
+# Conclusão: (joao responsavel_por_alimentar bruce)
+
+regra_alimentar = {
+    "condicoes": [
+        ("bruce", "pertence_a", "joao"),
+        ("bruce", "é_um", "animal"),
+        ("animal", "precisa_de", "comida")
+    ],
+    "conclusao": ("joao", "responsavel_por_alimentar", "bruce")
+}
+rs.adicionar_regra(regra_alimentar["condicoes"], regra_alimentar["conclusao"])
+
+
+# 4. Listar Relações ANTES da Inferência
+rs.listar_relacoes()
+
+# 5. Executar Inferência
+rs.inferir()
+
+# 6. Listar Relações DEPOIS da Inferência (Deve incluir a nova relação)
+rs.listar_relacoes()

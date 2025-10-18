@@ -1,0 +1,49 @@
+@startuml
+skinparam ClassAttributeIconStyle none
+
+abstract class Animal {
+  - especie : str
+  + precisa_de_comida(comida : Comida)
+}
+
+class Cachorro {
+  - nome : str
+  - raca : str
+  + latir()
+}
+
+class Pessoa {
+  - nome : str
+  - idade : int
+  + alimentar_cachorro(cachorro : Cachorro, comida : Comida)
+}
+
+class Casa {
+  - endereco : str
+}
+
+class Cidade {
+  - nome : str
+}
+
+class Comida {
+  - nome : str
+  - tipo : str
+}
+
+' Relação de Herança (é um)
+Animal <|-- Cachorro
+
+' Relação pertence a
+Pessoa "1" <-- "0..*" Cachorro : possui
+
+' Relação mora em (Agregação)
+Pessoa "0..*" --o "1" Casa : mora_em
+
+' Relação localizada em
+Casa "0..*" -- "1" Cidade : localizada_em
+
+' Relação precisa de
+Animal "1" -- "1" Comida : precisa_de
+
+@enduml
